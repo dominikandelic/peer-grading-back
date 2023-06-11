@@ -2,15 +2,20 @@ from datetime import date
 from ninja import Schema
 
 
-class StudentOut(Schema):
+class UserResponse(Schema):
+    id: int
     username: str
-    password: str
     first_name: str
     last_name: str
+    is_student: bool
+    is_teacher: bool
 
 
-class TeacherOut(Schema):
-    username: str
-    password: str
-    first_name: str
-    last_name: str
+class CourseResponse(Schema):
+    id: int
+    name: str
+
+
+class TaskResponse(Schema):
+    id: int
+    name: str

@@ -1,3 +1,4 @@
+import json
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 
@@ -23,16 +24,16 @@ class Student(User):
 class Course(models.Model):
     name = models.CharField(max_length=100)
     teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)
+    students = models.ManyToManyField(Student)
 
 
 class Task(models.Model):
     name = models.CharField(max_length=255)
-    file = models.CharField(max_length=255)
-    submissions = models.ManyToManyField("Submission")
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
 
 
 class Submission(models.Model):
-    file = models.CharField(max_length=255)
+    file = models.FileField(upload_to="uploads/submissions/")
     submission_task = models.ForeignKey(Task, on_delete=models.CASCADE)
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now=True)
