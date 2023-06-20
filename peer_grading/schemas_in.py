@@ -32,3 +32,7 @@ class CreateTaskRequest(Schema):
 
 class CreateSubmissionRequest(Schema):
     task_id: int
+
+
+class EnrollStudentRequest(Schema):
+    student_id: int

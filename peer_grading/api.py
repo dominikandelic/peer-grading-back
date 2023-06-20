@@ -9,6 +9,7 @@ from peer_grading.schemas_in import (
     CreateCourseRequest,
     CreateSubmissionRequest,
     CreateTaskRequest,
+    EnrollStudentRequest,
     RegisterStudentRequest,
     RegisterTeacherRequest,
     UpdateProfileRequest,
@@ -61,6 +62,11 @@ def get_teachers(request):
     return Teacher.objects.get_queryset()
 
 
+@api.get("/students", auth=JWTAuth(), response=List[UserResponse])
+def get_students(request):
+    return Student.objects.get_queryset()
+
+
 @api.post("/register/student", response={409: Error, 200: str})
 def register_student(request, payload: RegisterStudentRequest):
     try:
@@ -100,7 +106,7 @@ def get_courses(request):
 
 
 @api.get("/courses/{id}", response=CourseResponse, auth=JWTAuth())
-def get_courses(request, id: int):
+def get_course(request, id: int):
     return Course.objects.get(pk=id)
 
 
@@ -110,11 +116,33 @@ def get_course_tasks(request, course_id: int):
     return course.task_set.all()
 
 
+@api.get("/courses/{course_id}/students/", response=List[UserResponse], auth=JWTAuth())
+def get_enrolled_students(request, course_id: int):
+    course = Course.objects.get(pk=course_id)
+    return course.students.all()
+
+
 @api.post("/courses", response={409: Error, 200: str}, auth=JWTAuth())
 def create_course(request, payload: CreateCourseRequest):
     try:
         teacher = Teacher.objects.get(pk=payload.teacher_id)
         Course.objects.create(name=payload.name, teacher=teacher)
+    except:
+        return 409, {"message": "An error has ocurred"}
+    return "OK"
+
+
+@api.post(
+    "/courses/{course_id}/enroll-students",
+    response={409: Error, 200: str},
+    auth=JWTAuth(),
+)
+def create_course(request, payload: EnrollStudentRequest, course_id: int):
+    try:
+        student = Student.objects.get(pk=payload.student_id)
+        course = Course.objects.get(pk=course_id)
+        course.students.add(student)
+        course.save()
     except:
         return 409, {"message": "An error has ocurred"}
     return "OK"
