@@ -14,7 +14,12 @@ from peer_grading.schemas_in import (
     RegisterTeacherRequest,
     UpdateProfileRequest,
 )
-from peer_grading.schemas_out import CourseResponse, TaskResponse, UserResponse
+from peer_grading.schemas_out import (
+    CourseResponse,
+    SubmissionResponse,
+    TaskResponse,
+    UserResponse,
+)
 import orjson
 from ninja.renderers import BaseRenderer
 
@@ -34,6 +39,22 @@ class Error(Schema):
     message: str
 
 
+class StudentNotEnrolledError(Exception):
+    pass
+
+
+# initializing handler
+
+
+@api.exception_handler(StudentNotEnrolledError)
+def service_unavailable(request, exc):
+    return api.create_response(
+        request,
+        {"message": "Student not enrolled to this course"},
+        status=409,
+    )
+
+
 @api.get("/profile", auth=JWTAuth(), response=UserResponse)
 def get_profile(request):
     return request.user
@@ -47,14 +68,9 @@ def update_profile(request, payload: UpdateProfileRequest):
     user.save()
 
 
-@api.get("/users", auth=JWTAuth())
-def me(request):
-    if request.user.is_teacher:
-        return request.user.id
-    elif request.user.is_student:
-        return "Student"
-    else:
-        return "Superuser?"
+@api.get("/users/{user_id}", response=UserResponse, auth=JWTAuth())
+def get_user(request, user_id):
+    return User.objects.get(pk=user_id)
 
 
 @api.get("/teachers", auth=JWTAuth(), response=List[UserResponse])
@@ -122,6 +138,25 @@ def get_enrolled_students(request, course_id: int):
     return course.students.all()
 
 
+@api.get(
+    "/students/{student_id}/submissions/",
+    response=List[SubmissionResponse],
+    auth=JWTAuth(),
+)
+def get_student_submissions(request, student_id):
+    student = Student.objects.get(pk=student_id)
+    return list(Submission.objects.filter(student=student))
+
+
+@api.get(
+    "/students/{student_id}/submissions/{submission_id}",
+    response=SubmissionResponse,
+    auth=JWTAuth(),
+)
+def get_student_submission(request, student_id, submission_id):
+    return Submission.objects.get(pk=submission_id)
+
+
 @api.post("/courses", response={409: Error, 200: str}, auth=JWTAuth())
 def create_course(request, payload: CreateCourseRequest):
     try:
@@ -153,21 +188,69 @@ def get_task(request, id: int):
     return Task.objects.get(pk=id)
 
 
+@api.get(
+    "/tasks/{task_id}/{student_username}/has-submitted/",
+    auth=JWTAuth(),
+)
+def has_student_submitted(request, student_username, task_id):
+    student = Student.objects.get(username=student_username)
+    task = Task.objects.get(pk=task_id)
+    return Submission.objects.filter(student=student, submission_task=task).count() > 0
+
+
+@api.get(
+    "/tasks/{task_id}/{student_username}/submission",
+    auth=JWTAuth(),
+    response=SubmissionResponse,
+)
+def get_student_submission(request, student_username, task_id):
+    student = Student.objects.get(username=student_username)
+    task = Task.objects.get(pk=task_id)
+    return Submission.objects.filter(student=student, submission_task=task).first()
+
+
+@api.get("/tasks", response=List[TaskResponse], auth=JWTAuth())
+def get_active_tasks(request):
+    if request.user.is_teacher:
+        teacher = Teacher.objects.get(pk=request.user.id)
+        tasks = Task.objects.filter(course__teacher=teacher)
+        return list(tasks)
+    if request.user.is_student:
+        student = Student.objects.get(pk=request.user.id)
+        tasks = Task.objects.filter(course__students__in=[student])
+        return list(tasks)
+    else:
+        return list(Task.objects.all())
+
+
 @api.post("/tasks", response={409: Error, 200: str}, auth=JWTAuth())
 def create_task(request, payload: CreateTaskRequest):
     course = Course.objects.get(pk=payload.course_id)
-    print(course.name)
     Task.objects.create(name=payload.name, course=course)
     return "OK"
+
+
+@api.get(
+    "/task-submissions/{task_id}", response=List[SubmissionResponse], auth=JWTAuth()
+)
+def get_task_submissions(request, task_id):
+    task = Task.objects.get(pk=task_id)
+    return Submission.objects.filter(submission_task=task)
+
+
+@api.get("/submissions/{submission_id}", response=SubmissionResponse, auth=JWTAuth())
+def get_submission(request, submission_id):
+    return Submission.objects.get(pk=submission_id)
 
 
 @api.post("/submissions", auth=JWTAuth())
 def create_submission(
     request, details: CreateSubmissionRequest, file: UploadedFile = File(...)
 ):
-    task = Task.objects.get(pk=details.task_id)
     student = Student.objects.get(pk=request.user.id)
-    submission = Submission.objects.create(
-        file=file, submission_task=task, student=student
-    )
-    print(submission)
+    task = Task.objects.get(pk=details.task_id)
+    # Check if student is enrolled in the course
+    if student.course_set.filter(id=task.course.id).exists():
+        Submission.objects.create(file=file, submission_task=task, student=student)
+    else:
+        raise StudentNotEnrolledError()
