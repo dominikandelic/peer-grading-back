@@ -33,7 +33,7 @@ class Task(models.Model):
 
 
 class Submission(models.Model):
-    file = models.FileField(upload_to="uploads/submissions/")
+    file = models.FileField(upload_to="submissions/")
     submission_task = models.ForeignKey(Task, on_delete=models.CASCADE)
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now=True)

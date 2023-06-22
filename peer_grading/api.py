@@ -1,8 +1,9 @@
 from ninja import File, Schema, UploadedFile
 from typing import List
 from ninja_jwt.controller import NinjaJWTDefaultController
-from ninja_extra import NinjaExtraAPI
+from ninja_extra import NinjaExtraAPI, api_controller, route
 from django.contrib.auth.hashers import make_password
+from ninja_jwt.controller import TokenObtainPairController
 from peer_grading.models import Course, Student, Submission, Task, Teacher, User
 from ninja_jwt.authentication import JWTAuth
 from peer_grading.schemas_in import (
@@ -16,6 +17,8 @@ from peer_grading.schemas_in import (
 )
 from peer_grading.schemas_out import (
     CourseResponse,
+    MyTokenObtainPairOutSchema,
+    MyTokenObtainPairSchema,
     SubmissionResponse,
     TaskResponse,
     UserResponse,
@@ -31,8 +34,17 @@ class ORJSONRenderer(BaseRenderer):
         return orjson.dumps(data)
 
 
+@api_controller("/token", tags=["Auth"])
+class MyTokenObtainPairController(TokenObtainPairController):
+    @route.post(
+        "/pair", response=MyTokenObtainPairOutSchema, url_name="token_obtain_pair"
+    )
+    def obtain_token(self, user_token: MyTokenObtainPairSchema):
+        return user_token.output_schema()
+
+
 api = NinjaExtraAPI(renderer=ORJSONRenderer())
-api.register_controllers(NinjaJWTDefaultController)
+api.register_controllers(MyTokenObtainPairController)
 
 
 class Error(Schema):
@@ -76,6 +88,16 @@ def get_user(request, user_id):
 @api.get("/teachers", auth=JWTAuth(), response=List[UserResponse])
 def get_teachers(request):
     return Teacher.objects.get_queryset()
+
+
+@api.get(
+    "/teachers/{teacher_id}/courses/",
+    response=List[CourseResponse],
+    auth=JWTAuth(),
+)
+def get_teacher_courses(request, teacher_id):
+    teacher = Teacher.objects.get(pk=teacher_id)
+    return list(teacher.course_set.all())
 
 
 @api.get("/students", auth=JWTAuth(), response=List[UserResponse])
@@ -146,6 +168,16 @@ def get_enrolled_students(request, course_id: int):
 def get_student_submissions(request, student_id):
     student = Student.objects.get(pk=student_id)
     return list(Submission.objects.filter(student=student))
+
+
+@api.get(
+    "/students/{student_id}/courses/",
+    response=List[CourseResponse],
+    auth=JWTAuth(),
+)
+def get_student_courses(request, student_id):
+    student = Student.objects.get(pk=student_id)
+    return list(student.course_set.all())
 
 
 @api.get(

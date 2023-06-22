@@ -1,5 +1,6 @@
 from datetime import date
 from ninja import Schema
+from ninja_jwt.schema import TokenObtainPairInputSchema
 
 
 class UserResponse(Schema):
@@ -28,3 +29,16 @@ class SubmissionResponse(Schema):
     file: str
     student: UserResponse
     created_at: date
+
+
+class MyTokenObtainPairOutSchema(Schema):
+    refresh: str
+    access: str
+    user: UserResponse
+
+
+class MyTokenObtainPairSchema(TokenObtainPairInputSchema):
+    def output_schema(self):
+        out_dict = self.dict(exclude={"password"})
+        out_dict.update(user=UserResponse.from_orm(self._user))
+        return MyTokenObtainPairOutSchema(**out_dict)
