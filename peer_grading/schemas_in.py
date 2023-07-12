@@ -1,3 +1,4 @@
+from datetime import datetime
 from ninja import Schema
 
 
@@ -28,6 +29,9 @@ class UpdateProfileRequest(Schema):
 class CreateTaskRequest(Schema):
     name: str
     course_id: int
+    instructions: str
+    submissions_number: int
+    deadline: str
 
 
 class CreateSubmissionRequest(Schema):

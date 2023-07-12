@@ -1,10 +1,22 @@
+import json
+from django.db import transaction
+from django.utils import timezone
+from dateutil import parser
 from ninja import File, Schema, UploadedFile
 from typing import List
-from ninja_jwt.controller import NinjaJWTDefaultController
+from ninja.errors import HttpError
 from ninja_extra import NinjaExtraAPI, api_controller, route
 from django.contrib.auth.hashers import make_password
 from ninja_jwt.controller import TokenObtainPairController
-from peer_grading.models import Course, Student, Submission, Task, Teacher, User
+from peer_grading.models import (
+    Course,
+    Grading,
+    Student,
+    Submission,
+    Task,
+    Teacher,
+    User,
+)
 from ninja_jwt.authentication import JWTAuth
 from peer_grading.schemas_in import (
     CreateCourseRequest,
@@ -217,7 +229,8 @@ def create_course(request, payload: EnrollStudentRequest, course_id: int):
 
 @api.get("/tasks/{id}", response=TaskResponse, auth=JWTAuth())
 def get_task(request, id: int):
-    return Task.objects.get(pk=id)
+    task = Task.objects.get(pk=id)
+    return task
 
 
 @api.get(
@@ -255,11 +268,29 @@ def get_active_tasks(request):
         return list(Task.objects.all())
 
 
-@api.post("/tasks", response={409: Error, 200: str}, auth=JWTAuth())
+@api.post("/tasks", auth=JWTAuth(), response={409: Error, 200: str})
 def create_task(request, payload: CreateTaskRequest):
-    course = Course.objects.get(pk=payload.course_id)
-    Task.objects.create(name=payload.name, course=course)
-    return "OK"
+    if request.user.is_teacher:
+        course = Course.objects.get(pk=payload.course_id)
+        if course.teacher.id == request.user.id:
+            with transaction.atomic():
+                task = Task.objects.create(name=payload.name, course=course)
+                task.save()
+                tz = timezone.get_current_timezone()
+                deadline = parser.parse(payload.deadline)
+                deadline = timezone.make_aware(deadline, tz, True)
+                grading = Grading.objects.create(
+                    task=task,
+                    instructions=payload.instructions,
+                    submissions_number=payload.submissions_number,
+                    deadline=deadline,
+                )
+                grading.save()
+                return "OK"
+        else:
+            return 409, {"message": "Username taken"}
+    else:
+        return 409, {"message": "Username taken"}
 
 
 @api.get(

@@ -45,7 +45,7 @@ class Grading(models.Model):
         STANDBY = "STANDBY"
         FINISHED = "FINISHED"
 
-    task = models.OneToOneField(Task, on_delete=models.CASCADE)
+    task = models.OneToOneField(Task, on_delete=models.CASCADE, related_name="grading")
     instructions = models.TextField()
     submissions_number = models.IntegerField(validators=[MinValueValidator(1)])
     deadline = models.DateTimeField()

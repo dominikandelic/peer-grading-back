@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from ninja import Schema
 from ninja_jwt.schema import TokenObtainPairInputSchema
 
@@ -12,6 +12,13 @@ class UserResponse(Schema):
     is_teacher: bool
 
 
+class GradingResponse(Schema):
+    status: str
+    instructions: str
+    submissions_number: int
+    deadline: datetime
+
+
 class CourseResponse(Schema):
     id: int
     name: str
@@ -21,6 +28,7 @@ class CourseResponse(Schema):
 class TaskResponse(Schema):
     id: int
     name: str
+    grading: GradingResponse
     course: CourseResponse
 
 
