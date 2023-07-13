@@ -16,6 +16,7 @@ from peer_grading.models import (
     Task,
     Teacher,
     User,
+    GradingStatus,
 )
 from ninja_jwt.authentication import JWTAuth
 from peer_grading.schemas_in import (
@@ -25,7 +26,10 @@ from peer_grading.schemas_in import (
     EnrollStudentRequest,
     RegisterStudentRequest,
     RegisterTeacherRequest,
+    UpdateCourseRequest,
+    UpdateGradingStatus,
     UpdateProfileRequest,
+    UpdateTaskRequest,
 )
 from peer_grading.schemas_out import (
     CourseResponse,
@@ -155,9 +159,9 @@ def get_courses(request):
     return list(courses)
 
 
-@api.get("/courses/{id}", response=CourseResponse, auth=JWTAuth())
-def get_course(request, id: int):
-    return Course.objects.get(pk=id)
+@api.get("/courses/{course_id}", response=CourseResponse, auth=JWTAuth())
+def get_course(request, course_id: int):
+    return Course.objects.get(pk=course_id)
 
 
 @api.get("/courses/{course_id}/tasks/", response=List[TaskResponse], auth=JWTAuth())
@@ -216,7 +220,7 @@ def create_course(request, payload: CreateCourseRequest):
     response={409: Error, 200: str},
     auth=JWTAuth(),
 )
-def create_course(request, payload: EnrollStudentRequest, course_id: int):
+def enroll_student(request, payload: EnrollStudentRequest, course_id: int):
     try:
         student = Student.objects.get(pk=payload.student_id)
         course = Course.objects.get(pk=course_id)
@@ -227,10 +231,16 @@ def create_course(request, payload: EnrollStudentRequest, course_id: int):
     return "OK"
 
 
-@api.get("/tasks/{id}", response=TaskResponse, auth=JWTAuth())
-def get_task(request, id: int):
-    task = Task.objects.get(pk=id)
-    return task
+@api.put("/courses/{course_id}", response={409: Error, 200: str}, auth=JWTAuth())
+def update_course(request, payload: UpdateCourseRequest, course_id: int):
+    try:
+        course = Course.objects.get(pk=course_id)
+        if course.teacher.id == request.user.id:
+            course.name = payload.name
+            course.save()
+    except:
+        return 409, {"message": "An error has ocurred"}
+    return "OK"
 
 
 @api.get(
@@ -268,6 +278,34 @@ def get_active_tasks(request):
         return list(Task.objects.all())
 
 
+@api.get("/tasks/{task_id}", response=TaskResponse, auth=JWTAuth())
+def get_task(request, task_id: int):
+    task = Task.objects.get(pk=task_id)
+    return task
+
+
+@api.put("/tasks/{task_id}", auth=JWTAuth(), response={409: Error, 200: str})
+def update_task(request, payload: UpdateTaskRequest, task_id: int):
+    if request.user.is_teacher:
+        task = Task.objects.get(pk=task_id)
+        if task.course.teacher.id == request.user.id:
+            with transaction.atomic():
+                task.name = payload.name
+                task.save()
+                tz = timezone.get_default_timezone()
+                deadline = parser.parse(payload.deadline)
+                deadline = timezone.make_aware(deadline, tz, True)
+                task.grading.instructions = payload.instructions
+                task.grading.submissions_number = payload.submissions_number
+                task.grading.deadline = deadline
+                task.grading.save()
+                return "OK"
+        else:
+            return 409, {"message": "Username taken"}
+    else:
+        return 409, {"message": "Username taken"}
+
+
 @api.post("/tasks", auth=JWTAuth(), response={409: Error, 200: str})
 def create_task(request, payload: CreateTaskRequest):
     if request.user.is_teacher:
@@ -286,6 +324,23 @@ def create_task(request, payload: CreateTaskRequest):
                     deadline=deadline,
                 )
                 grading.save()
+                return "OK"
+        else:
+            return 409, {"message": "Username taken"}
+    else:
+        return 409, {"message": "Username taken"}
+
+
+@api.patch(
+    "/tasks/{taskId}/grading-status", auth=JWTAuth(), response={409: Error, 200: str}
+)
+def update_grading_status(request, payload: UpdateGradingStatus, taskId):
+    if request.user.is_teacher:
+        task = Task.objects.get(pk=taskId)
+        if task.course.teacher.id == request.user.id:
+            with transaction.atomic():
+                task.grading.status = payload.status
+                task.grading.save()
                 return "OK"
         else:
             return 409, {"message": "Username taken"}
@@ -313,7 +368,10 @@ def create_submission(
     student = Student.objects.get(pk=request.user.id)
     task = Task.objects.get(pk=details.task_id)
     # Check if student is enrolled in the course
-    if student.course_set.filter(id=task.course.id).exists():
+    if (
+        student.course_set.filter(id=task.course.id).exists()
+        and task.course.grading.status == GradingStatus.STANDBY
+    ):
         Submission.objects.create(file=file, submission_task=task, student=student)
     else:
         raise StudentNotEnrolledError()

@@ -1,6 +1,8 @@
 from datetime import datetime
 from ninja import Schema
 
+from peer_grading.models import GradingStatus
+
 
 class RegisterStudentRequest(Schema):
     username: str
@@ -21,6 +23,10 @@ class CreateCourseRequest(Schema):
     teacher_id: int
 
 
+class UpdateCourseRequest(Schema):
+    name: str
+
+
 class UpdateProfileRequest(Schema):
     first_name: str
     last_name: str
@@ -34,8 +40,19 @@ class CreateTaskRequest(Schema):
     deadline: str
 
 
+class UpdateTaskRequest(Schema):
+    name: str
+    instructions: str
+    submissions_number: int
+    deadline: str
+
+
 class CreateSubmissionRequest(Schema):
     task_id: int
+
+
+class UpdateGradingStatus(Schema):
+    status: GradingStatus
 
 
 class EnrollStudentRequest(Schema):

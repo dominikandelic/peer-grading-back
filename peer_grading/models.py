@@ -39,12 +39,13 @@ class Submission(models.Model):
     created_at = models.DateTimeField(auto_now=True)
 
 
-class Grading(models.Model):
-    class GradingStatus(models.TextChoices):
-        STARTED = "STARTED"
-        STANDBY = "STANDBY"
-        FINISHED = "FINISHED"
+class GradingStatus(models.TextChoices):
+    STARTED = "STARTED"
+    STANDBY = "STANDBY"
+    FINISHED = "FINISHED"
 
+
+class Grading(models.Model):
     task = models.OneToOneField(Task, on_delete=models.CASCADE, related_name="grading")
     instructions = models.TextField()
     submissions_number = models.IntegerField(validators=[MinValueValidator(1)])
