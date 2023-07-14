@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 from django.db import transaction
 from django.utils import timezone
@@ -370,7 +371,8 @@ def create_submission(
     # Check if student is enrolled in the course
     if (
         student.course_set.filter(id=task.course.id).exists()
-        and task.course.grading.status == GradingStatus.STANDBY
+        and task.grading.status == GradingStatus.STANDBY
+        and datetime.now(tz=timezone.get_default_timezone()) <= task.grading.deadline
     ):
         Submission.objects.create(file=file, submission_task=task, student=student)
     else:
