@@ -1,4 +1,3 @@
-import json
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 
@@ -30,6 +29,8 @@ class Course(models.Model):
 class Task(models.Model):
     name = models.CharField(max_length=255)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now=True)
+    deadline = models.DateTimeField()
 
 
 class Submission(models.Model):
@@ -49,13 +50,25 @@ class Grading(models.Model):
     task = models.OneToOneField(Task, on_delete=models.CASCADE, related_name="grading")
     instructions = models.TextField()
     submissions_number = models.IntegerField(validators=[MinValueValidator(1)])
-    deadline = models.DateTimeField()
     status = models.CharField(
         choices=GradingStatus.choices, default=GradingStatus.STANDBY, max_length=15
     )
 
 
+class StudentGradingStatus(models.TextChoices):
+    IN_PROGRESS = "IN_PROGRESS"
+    DONE = "DONE"
+
+
 class SubmissionGrade(models.Model):
     grader = models.ForeignKey(Student, on_delete=models.CASCADE)
     submission = models.ForeignKey(Submission, on_delete=models.CASCADE)
-    grade = models.IntegerField()
+    grade = models.IntegerField(null=True, blank=True)
+    status = models.CharField(
+        choices=StudentGradingStatus.choices, default=StudentGradingStatus.IN_PROGRESS, max_length=15
+    )
+
+
+class GradingResult(models.Model):
+    submission = models.ForeignKey(Submission, on_delete=models.CASCADE)
+    total_score = models.IntegerField()

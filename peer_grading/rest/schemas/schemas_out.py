@@ -10,13 +10,13 @@ class UserResponse(Schema):
     last_name: str
     is_student: bool
     is_teacher: bool
+    is_superuser: bool
 
 
 class GradingResponse(Schema):
     status: str
     instructions: str
     submissions_number: int
-    deadline: datetime
 
 
 class CourseResponse(Schema):
@@ -30,13 +30,22 @@ class TaskResponse(Schema):
     name: str
     grading: GradingResponse
     course: CourseResponse
+    created_at: datetime
+    deadline: datetime
 
 
 class SubmissionResponse(Schema):
     id: int
     file: str
     student: UserResponse
-    created_at: date
+    created_at: datetime
+    submission_task: TaskResponse
+
+
+class GradingResultResponse(Schema):
+    id: int
+    total_score: int
+    submission: SubmissionResponse
 
 
 class MyTokenObtainPairOutSchema(Schema):
