@@ -2,6 +2,8 @@ from datetime import date, datetime
 from ninja import Schema
 from ninja_jwt.schema import TokenObtainPairInputSchema
 
+from peer_grading.models import StudentGradingStatus
+
 
 class UserResponse(Schema):
     id: int
@@ -46,6 +48,14 @@ class GradingResultResponse(Schema):
     id: int
     total_score: int
     submission: SubmissionResponse
+
+
+class SubmissionGradeResponse(Schema):
+    id: int
+    grader: UserResponse
+    grade: int
+    submission: SubmissionResponse
+    status: StudentGradingStatus
 
 
 class MyTokenObtainPairOutSchema(Schema):

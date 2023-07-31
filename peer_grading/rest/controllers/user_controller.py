@@ -28,7 +28,7 @@ class UserController:
     def get_students(self):
         return Student.objects.get_queryset()
 
-    @route.post("/register/student", response={200: str})
+    @route.post("/register/student")
     def register_student(self, payload: RegisterStudentRequest):
         try:
             Student.objects.create(
@@ -40,10 +40,10 @@ class UserController:
                 is_student=True,
             )
         except:
-            raise BadRequestException(detail="An error has occurred", code="UPDATE_ERROR")
+            raise BadRequestException(detail="An error has occurred during registration", code="REGISTER_ERROR")
         return "OK"
 
-    @route.post("/register/teacher", response={200: str})
+    @route.post("/register/teacher")
     def register_teacher(self, payload: RegisterTeacherRequest):
         try:
             Teacher.objects.create(
@@ -55,7 +55,7 @@ class UserController:
                 is_teacher=True,
             )
         except:
-            raise BadRequestException(detail="An error has occurred", code="UPDATE_ERROR")
+            raise BadRequestException(detail="An error has occurred during registration", code="REGISTER_ERROR")
         return "OK"
 
     @route.put("/profile", auth=JWTAuth())

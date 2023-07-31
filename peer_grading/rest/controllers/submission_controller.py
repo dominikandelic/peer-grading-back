@@ -5,11 +5,23 @@ from django.utils import timezone
 from ninja import File, UploadedFile
 from ninja_extra import api_controller, route
 from ninja_jwt.authentication import JWTAuth
-
+from pypdf import PdfReader
+from pypdf.errors import PdfReadError
 from peer_grading.models import Task, Submission, Student, GradingStatus
 from peer_grading.rest.exceptions.exceptions import BadRequestException
 from peer_grading.rest.schemas.schemas_in import CreateSubmissionRequest
 from peer_grading.rest.schemas.schemas_out import SubmissionResponse
+
+
+def validate_pdf(file):
+    try:
+        PdfReader(file.file)
+    except PdfReadError:
+        raise BadRequestException(detail="Please submit a PDF submission", code="NOT_A_PDF_ERROR")
+
+
+def is_valid(task):
+    return task.grading.status == GradingStatus.STANDBY and datetime.now(tz=timezone.get_default_timezone()) <= task.deadline
 
 
 @api_controller(auth=JWTAuth(), tags=["Submission"])
@@ -71,12 +83,33 @@ class SubmissionController:
     ):
         student = Student.objects.get(pk=self.context.request.auth.id)
         task = Task.objects.get(pk=details.task_id)
+
+        # Check if file is in PDF format
+        validate_pdf(file)
+
         # Check if student is enrolled in the course
         if (
-                student.course_set.filter(id=task.course.id).exists()
-                and task.grading.status == GradingStatus.STANDBY
-                and datetime.now(tz=timezone.get_default_timezone()) <= task.deadline
+                student.course_set.filter(id=task.course.id).exists() and
+                is_valid(task)
         ):
             Submission.objects.create(file=file, submission_task=task, student=student)
         else:
             raise BadRequestException(detail="You cannot submit anymore", code="CREATE_ERROR")
+
+    # Should be PUT but there are framework constraints to only accept FormData from POST
+    @route.post("/submissions/{submission_id}", auth=JWTAuth(), tags=["Submission"])
+    def update_submission(
+            self, submission_id: int, file: UploadedFile = File(...)
+    ):
+        student = Student.objects.get(pk=self.context.request.auth.id)
+        submission = Submission.objects.get(pk=submission_id)
+
+        # Check if file is in PDF format
+        validate_pdf(file)
+
+        if is_valid(submission.submission_task) and submission.student.id == student.id:
+            submission.file = file
+            submission.save()
+        else:
+            raise BadRequestException(detail="You cannot update submission anymore", code="UPDATE_ERROR")
+

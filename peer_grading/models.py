@@ -50,6 +50,7 @@ class Grading(models.Model):
     task = models.OneToOneField(Task, on_delete=models.CASCADE, related_name="grading")
     instructions = models.TextField()
     submissions_number = models.IntegerField(validators=[MinValueValidator(1)])
+    created_at = models.DateTimeField(auto_now=True)
     status = models.CharField(
         choices=GradingStatus.choices, default=GradingStatus.STANDBY, max_length=15
     )
@@ -64,6 +65,7 @@ class SubmissionGrade(models.Model):
     grader = models.ForeignKey(Student, on_delete=models.CASCADE)
     submission = models.ForeignKey(Submission, on_delete=models.CASCADE)
     grade = models.IntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now=True)
     status = models.CharField(
         choices=StudentGradingStatus.choices, default=StudentGradingStatus.IN_PROGRESS, max_length=15
     )
@@ -72,3 +74,4 @@ class SubmissionGrade(models.Model):
 class GradingResult(models.Model):
     submission = models.ForeignKey(Submission, on_delete=models.CASCADE)
     total_score = models.IntegerField()
+    created_at = models.DateTimeField(auto_now=True)

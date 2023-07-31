@@ -8,7 +8,7 @@ from ninja_jwt.authentication import JWTAuth
 from peer_grading.models import Submission, Student, Task, SubmissionGrade, StudentGradingStatus, GradingResult
 from peer_grading.rest.exceptions.exceptions import BadRequestException
 from peer_grading.rest.schemas.schemas_in import GradeSubmissionRequest
-from peer_grading.rest.schemas.schemas_out import SubmissionResponse, GradingResultResponse
+from peer_grading.rest.schemas.schemas_out import SubmissionResponse, GradingResultResponse, SubmissionGradeResponse
 
 
 @api_controller(tags=["Grading"], auth=JWTAuth())
@@ -53,9 +53,14 @@ class GradingController:
         return filtered_submissions
 
     @route.get("/grading/{task_id}/results", response=List[GradingResultResponse])
-    def get_grading_results(self, task_id):
+    def get_task_grading_results(self, task_id):
         task = Task.objects.get(pk=task_id)
         return GradingResult.objects.filter(submission__submission_task=task).order_by('-total_score')
+
+    @route.get("/grading/submissions/{submission_id}/results", response=List[SubmissionGradeResponse])
+    def get_submission_grading_results(self, submission_id):
+        submission = Submission.objects.get(pk=submission_id)
+        return submission.submissiongrade_set.exclude(status=StudentGradingStatus.IN_PROGRESS).order_by('-grade')
 
     @route.get("/grading/{task_id}/has-graded")
     def has_already_graded_submission(self, task_id):
