@@ -40,7 +40,7 @@ class UserController:
                 is_student=True,
             )
         except:
-            raise BadRequestException(detail="An error has occurred during registration", code="REGISTER_ERROR")
+            raise BadRequestException(detail="Došlo je do pogreške", code="REGISTER_ERROR")
         return "OK"
 
     @route.post("/register/teacher")
@@ -55,7 +55,7 @@ class UserController:
                 is_teacher=True,
             )
         except:
-            raise BadRequestException(detail="An error has occurred during registration", code="REGISTER_ERROR")
+            raise BadRequestException(detail="Došlo je do pogreške", code="REGISTER_ERROR")
         return "OK"
 
     @route.put("/profile", auth=JWTAuth())
@@ -71,4 +71,4 @@ class UserController:
             user = User.objects.get(pk=user_id)
             user.delete()
         else:
-            raise BadRequestException(detail="An error has occurred", code="DELETE_ERROR")
+            raise BadRequestException(detail="Došlo je do pogreške", code="DELETE_ERROR")

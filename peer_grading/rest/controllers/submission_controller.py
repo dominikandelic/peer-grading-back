@@ -17,7 +17,7 @@ def validate_pdf(file):
     try:
         PdfReader(file.file)
     except PdfReadError:
-        raise BadRequestException(detail="Please submit a PDF submission", code="NOT_A_PDF_ERROR")
+        raise BadRequestException(detail="Pošalji rad u PDF formatu", code="NOT_A_PDF_ERROR")
 
 
 def is_valid(task):
@@ -94,7 +94,7 @@ class SubmissionController:
         ):
             Submission.objects.create(file=file, submission_task=task, student=student)
         else:
-            raise BadRequestException(detail="You cannot submit anymore", code="CREATE_ERROR")
+            raise BadRequestException(detail="Ne možeš više predati rad", code="CREATE_ERROR")
 
     # Should be PUT but there are framework constraints to only accept FormData from POST
     @route.post("/submissions/{submission_id}", auth=JWTAuth(), tags=["Submission"])
@@ -111,5 +111,5 @@ class SubmissionController:
             submission.file = file
             submission.save()
         else:
-            raise BadRequestException(detail="You cannot update submission anymore", code="UPDATE_ERROR")
+            raise BadRequestException(detail="Ne možeš više ažurirati rad", code="UPDATE_ERROR")
 

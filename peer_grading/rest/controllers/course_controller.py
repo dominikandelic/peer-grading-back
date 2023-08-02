@@ -54,9 +54,9 @@ class CourseController:
                 teacher = Teacher.objects.get(pk=payload.teacher_id)
                 Course.objects.create(name=payload.name, teacher=teacher)
             except:
-                raise BadRequestException(detail="An error has occurred", code="CREATE_ERROR")
+                raise BadRequestException(detail="Došlo je do pogreške", code="CREATE_ERROR")
             return "OK"
-        raise BadRequestException(detail="An error has occurred", code="CREATE_ERROR")
+        raise BadRequestException(detail="Došlo je do pogreške", code="CREATE_ERROR")
 
     @route.post(
         "/courses/{course_id}/enroll-students",
@@ -70,9 +70,9 @@ class CourseController:
                 course.students.add(student)
                 course.save()
             except:
-                raise BadRequestException(detail="An error has occurred", code="ALREADY_ENROLLED")
+                raise BadRequestException(detail="Došlo je do pogreške", code="ALREADY_ENROLLED")
             return "OK"
-        raise BadRequestException(detail="An error has occurred", code="CREATE_ERROR")
+        raise BadRequestException(detail="Došlo je do pogreške", code="CREATE_ERROR")
 
     @route.put("/courses/{course_id}", response={200: str})
     def update_course(self, payload: UpdateCourseRequest, course_id: int):
@@ -82,7 +82,7 @@ class CourseController:
                 course.name = payload.name
                 course.save()
         except:
-            raise BadRequestException(detail="An error has occurred", code="UPDATE_ERROR")
+            raise BadRequestException(detail="Došlo je do pogreške", code="UPDATE_ERROR")
         return "OK"
 
     @route.delete("/courses/{course_id}")
@@ -92,4 +92,4 @@ class CourseController:
             if course.teacher.id == self.context.request.auth.id or self.context.request.auth.is_superuser:
                 course.delete()
         except:
-            raise BadRequestException(detail="An error has occurred", code="DELETE_ERROR")
+            raise BadRequestException(detail="Došlo je do pogreške", code="DELETE_ERROR")

@@ -70,9 +70,9 @@ class TaskController:
                     grading.save()
                     return "OK"
             else:
-                raise BadRequestException(detail="An error has occurred", code="UPDATE_ERROR")
+                raise BadRequestException(detail="Došlo je do pogreške", code="UPDATE_ERROR")
         else:
-            raise BadRequestException(detail="An error has occurred", code="UPDATE_ERROR")
+            raise BadRequestException(detail="Došlo je do pogreške", code="UPDATE_ERROR")
 
     @route.put("/tasks/{task_id}", response={200: str})
     def update_task(self, payload: UpdateTaskRequest, task_id: int):
@@ -92,9 +92,9 @@ class TaskController:
                     task.grading.save()
                     return "OK"
             else:
-                raise BadRequestException(detail="An error has occurred", code="UPDATE_ERROR")
+                raise BadRequestException(detail="Došlo je do pogreške", code="UPDATE_ERROR")
         else:
-            raise BadRequestException(detail="An error has occurred", code="UPDATE_ERROR")
+            raise BadRequestException(detail="Došlo je do pogreške", code="UPDATE_ERROR")
 
     @route.patch(
         "/tasks/{task_id}/grading-status", response={200: str}
@@ -113,9 +113,9 @@ class TaskController:
                             GradingResult.objects.create(submission=submission, total_score=total_score)
                     return "OK"
             else:
-                raise BadRequestException(detail="An error has occurred", code="UPDATE_ERROR")
+                raise BadRequestException(detail="Došlo je do pogreške", code="UPDATE_ERROR")
         else:
-            raise BadRequestException(detail="An error has occurred", code="UPDATE_ERROR")
+            raise BadRequestException(detail="Došlo je do pogreške", code="UPDATE_ERROR")
 
     @route.delete("/tasks/{task_id}")
     def delete_task(self, task_id: int):
@@ -123,7 +123,7 @@ class TaskController:
             task = Task.objects.get(pk=task_id)
             task.delete()
         else:
-            raise BadRequestException(detail="An error has occurred", code="DELETE_ERROR")
+            raise BadRequestException(detail="Došlo je do pogreške", code="DELETE_ERROR")
 
 
 def calculate_submission_total_score(submission: Submission):

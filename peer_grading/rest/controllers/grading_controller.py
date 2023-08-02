@@ -19,6 +19,13 @@ class GradingController:
         # Define the number of submissions to filter
         n = task.grading.submissions_number
         student = Student.objects.get(pk=self.context.request.auth.id)
+
+        # Student needs to have submitted their own solution
+        has_submission_for_task = student.submission_set.filter(submission_task=task).exists()
+        if not has_submission_for_task:
+            raise BadRequestException(detail="Ne možeš ocjenjivati zadatke jer nisi predao/la vlastito rješenje",
+                                      code="GRADE_SUBMISSIONS_ERROR")
+
         has_submission_grade = SubmissionGrade.objects.filter(grader=student, submission__submission_task=task).exists()
         if has_submission_grade:
             # Find all submissions with SubmissionGrade for the task and in "IN_PROGRESS" status
@@ -79,7 +86,7 @@ class GradingController:
                 submission_grade.grade = request.grade
                 submission_grade.save()
         else:
-            raise BadRequestException(detail="Incorrect grade values")
+            raise BadRequestException(detail="Netočne vrijednosti ocjena")
 
 
 def has_valid_grades_sum(submissions, n):
