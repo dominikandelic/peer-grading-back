@@ -3,7 +3,7 @@ from typing import List
 
 from dateutil import parser
 from django.db import transaction
-from django.db.models import F, Case, When, Value, IntegerField, QuerySet
+from django.db.models import QuerySet
 from django.utils import timezone
 from ninja_extra import api_controller, route
 from ninja_jwt.authentication import JWTAuth
@@ -20,13 +20,10 @@ def order_tasks_by_deadline(query_set: QuerySet):
     # Order deadlines which are greater than current_datetime in asc order
     # For deadlines which are smaller than current_datetime, set 0
     # Sort first by time difference, and then show "newly expired" tasks
-    return query_set.annotate(
-        time_difference=Case(
-            When(deadline__gt=current_datetime, then=F('deadline') - current_datetime),
-            default=Value(0),
-            output_field=IntegerField(),
-        )
-    ).order_by('time_difference', '-deadline')
+    current_datetime = timezone.now()
+    query_set_gte = query_set.filter(deadline__gte=current_datetime).order_by('deadline')
+    query_set_lt = query_set.filter(deadline__lt=current_datetime).order_by('-deadline')
+    return list(query_set_gte) + list(query_set_lt)
 
 
 @api_controller(auth=JWTAuth(), tags=["Task"])
@@ -35,12 +32,10 @@ class TaskController:
     def get_active_tasks(self):
         if self.context.request.auth.is_teacher:
             teacher = Teacher.objects.get(pk=self.context.request.auth.id)
-            tasks = order_tasks_by_deadline(Task.objects.filter(course__teacher=teacher))
-            return list(tasks)
+            return order_tasks_by_deadline(Task.objects.filter(course__teacher=teacher))
         if self.context.request.auth.is_student:
             student = Student.objects.get(pk=self.context.request.auth.id)
-            tasks = order_tasks_by_deadline(Task.objects.filter(course__students__in=[student]))
-            return list(tasks)
+            return order_tasks_by_deadline(Task.objects.filter(course__students__in=[student]))
 
         return list(Task.objects.all())
 

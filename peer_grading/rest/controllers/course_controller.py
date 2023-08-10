@@ -4,6 +4,7 @@ from ninja_jwt.authentication import JWTAuth
 from ninja_extra import api_controller, route
 
 from peer_grading.models import Student, Course, Teacher
+from peer_grading.rest.controllers.task_controller import order_tasks_by_deadline
 from peer_grading.rest.exceptions.exceptions import BadRequestException
 from peer_grading.rest.schemas.schemas_in import EnrollStudentRequest, CreateCourseRequest, UpdateCourseRequest
 from peer_grading.rest.schemas.schemas_out import UserResponse, CourseResponse, TaskResponse
@@ -40,7 +41,7 @@ class CourseController:
     @route.get("/courses/{course_id}/tasks/", response=List[TaskResponse])
     def get_course_tasks(self, course_id: int):
         course = Course.objects.get(pk=course_id)
-        return course.task_set.all()
+        return order_tasks_by_deadline(course.task_set.all())
 
     @route.get("/courses/{course_id}/students/", response=List[UserResponse])
     def get_enrolled_students(self, course_id: int):
