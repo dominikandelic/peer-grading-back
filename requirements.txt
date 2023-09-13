@@ -9,6 +9,7 @@ django-cors-headers==4.0.0
 django-ninja==0.22.1
 django-ninja-extra==0.18.9
 django-ninja-jwt==5.2.5
+django_extensions==3.2.3
 filelock==3.8.0
 fonttools==4.34.4
 injector==0.20.1

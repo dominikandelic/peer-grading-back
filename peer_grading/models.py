@@ -25,6 +25,9 @@ class Course(models.Model):
     teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)
     students = models.ManyToManyField(Student)
 
+    def __str__(self):
+        return self.name
+
 
 class Task(models.Model):
     name = models.CharField(max_length=255)
@@ -32,12 +35,19 @@ class Task(models.Model):
     created_at = models.DateTimeField(auto_now=True)
     deadline = models.DateTimeField()
 
+    def __str__(self):
+        return self.name
+
 
 class Submission(models.Model):
     file = models.FileField(upload_to="submissions/")
     submission_task = models.ForeignKey(Task, on_delete=models.CASCADE)
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.student.first_name + " " + self.student.last_name \
+            + "'s submission for task " + self.submission_task.name
 
 
 class GradingStatus(models.TextChoices):
@@ -55,6 +65,9 @@ class Grading(models.Model):
         choices=GradingStatus.choices, default=GradingStatus.STANDBY, max_length=15
     )
 
+    def __str__(self):
+        return self.task.name
+
 
 class StudentGradingStatus(models.TextChoices):
     IN_PROGRESS = "IN_PROGRESS"
@@ -70,8 +83,16 @@ class SubmissionGrade(models.Model):
         choices=StudentGradingStatus.choices, default=StudentGradingStatus.IN_PROGRESS, max_length=15
     )
 
+    def __str__(self):
+        return self.grader.first_name + " " + self.grader.last_name \
+            + "'s grade of " + self.submission.student.first_name + " " + self.submission.student.last_name \
+            + "'s submission for task " + self.submission.submission_task.name
+
 
 class GradingResult(models.Model):
     submission = models.ForeignKey(Submission, on_delete=models.CASCADE)
     total_score = models.IntegerField()
     created_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.submission.submission_task.name

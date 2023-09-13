@@ -59,7 +59,7 @@ class CourseController:
             return "OK"
         raise BadRequestException(detail="Došlo je do pogreške", code="CREATE_ERROR")
 
-    @route.post(
+    @route.put(
         "/courses/{course_id}/enroll-students",
         response={200: str},
     )
